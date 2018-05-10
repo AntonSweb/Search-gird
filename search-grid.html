@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <!-- grid root element -->
+    <div id="search__grid">
+        <form id="search">
+            <label for="search__in">{{$L->__('Search_list')}}</label><input id="search__in" name="query" v-model="searchQuery">
+        </form>
+        <s-grid
+                :data="gridData"
+                :titles="gridTitles"
+                :columns="gridColumns"
+                :filter-key="searchQuery">
+        </s-grid>
+    </div>
+    <!-- component template -->
+    <script type="text/x-template" id="grid-template">
+        <div class="list-stores__back">
+            <div class="list-stores__table">
+                <div class="list-stores__title">
+                    <span class="list-stores__title-text">{{$L->__('List_stores_on_site')}}</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th v-for="(key, index) in titles" v-text="key" :data-num="index | string"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="entry in filteredData">
+                            <td v-for="key in columns" v-text="entry[key]"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+        // register the grid component
+        Vue.component('s-grid', {
+            template: '#grid-template',
+            props: {
+                data: Array,
+                titles: Array,
+                columns: Array,
+                filterKey: String
+            },
+            computed: {
+                filteredData: function () {
+                    let filterKey = this.filterKey && this.filterKey.toLowerCase();
+                    let data = this.data;
+                    if (filterKey) {
+                        data = data.filter(function (row) {
+                            return Object.keys(row).some(function (key) {
+                                return String(row[key]).toLowerCase().indexOf(filterKey) > -1
+                            })
+                        })
+                    }
+                    return data
+                }
+            },
+            filters: {
+                capitalize: function (str) {
+                    return str.charAt(0).toUpperCase() + str.slice(1)
+                },
+                string: function (str) {
+                    return str.toString();
+                }
+            }
+        });
+
+        new Vue({
+            el: '#search__grid',
+            data: {
+                searchQuery: '',
+                gridTitles: ['{{$L->__("store_name_title")}}', '{{$L->__("store_city_title")}}', '{{$L->__("store_address_title")}}', '{{$L->__("store_phone_title")}}'],
+                gridColumns: ['name', 'city', 'address', 'phone'],
+                gridData: []
+            },
+            created (){
+                this.getAllStores();
+            },
+            methods: {
+                getAllStores: function () {
+                    let that = this;
+                    axios.post('/getStoresList')
+                        .then(function (response) {
+                            that.gridData = response.data;
+                        })
+                        .catch(function (error) {
+                            console.log(error);
+                        });
+                }
+            }
+        });
+    </script>
+</body>
+</html>
